@@ -1,0 +1,10 @@
+Observations:
+
+ln 39 in mapSrv service:           missing ; before statement
+ln 40 - 48 in mapSrv service:    mixed spaces and tabs
+
+
+ln 57 in mapSrv service:           mixed spaces and tabs
+ln 58 in mapSrv service:           missing ;
+ln 59 in mapSrv service:           label url statement
+ln 65 in mapSrv service:           mixed spaces and tabs
