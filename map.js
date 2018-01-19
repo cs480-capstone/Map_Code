@@ -1,29 +1,6 @@
 
-//app uses git://github.com/arunisrael/angularjs-geolocation.git mudule as a dependancy
+//app uses cordova plugin geolocation as a dependancy: https://github.com/apache/cordova-plugin-geolocation.git
 var appMap = angular.module('botaniMap', ['geolocation']);
-
-    /*
-        coordFinder factory provides the service with a means of finding 
-        the phone's geolocation, the q service is used because it should be an
-        asynchronous function
-    */
-    appMap.factory('coordFinder', ['$q', function($q, geolocation){
-        var def = $q.defer();
-
-        var coords = geolocation.getLocation().then(function(data){
-                                                        return {
-                                                            lat: data.coords.latitude,
-                                                            lng: data.coords.longitude
-                                                        }
-                                                    });
-
-        def.resolve(coords);
-
-        return def.promise;
-    }]);
-
-
-
 
     /*
         mapSrv service contains the information the controller 
@@ -31,7 +8,7 @@ var appMap = angular.module('botaniMap', ['geolocation']);
     */
     appMap.service('mapSrv', function(){
         /*
-        ///these should be added dynamically from the trees in Luke's Database
+        ///dummy array should be replaced; added dynamically from the trees in Luke's Database
         */
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         val trees = [
@@ -49,8 +26,27 @@ var appMap = angular.module('botaniMap', ['geolocation']);
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
+        //here is where the phone's geolocation is set on the map/////////////////////////////////////////////
+        //there is also an error function just incase the update was unsuccessful
+        this.updateUsrLoc = function(position){
+              if(this.userLoc) this.userLoc.setMap(null);
+
+              this.userLoc = new google.maps.Marker({
+                 map: this.map;
+                 position: position.coord;
+              });
+    
+        }
+
+        this.posNotFound = function(error){
+            alert('code: ' + error.code +'\n'
+                   + 'message: ' + error.message + '\n');
+        }
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
         //here is where the tree markers are dynamically populating the map
-        this.setMarkers = function(map){
+        this.setTreeMarkers = function(){
 
         	//define an image for the markers 
         	var image {
@@ -65,7 +61,7 @@ var appMap = angular.module('botaniMap', ['geolocation']);
 
         		var treeMark = new google.maps.Marker({
         			position: {lat: nextTree[1], lng: nextTree[2]},
-        			map: map,
+        			map: this.map,
         			icon: image,
         			title: nextTree[0]
         		});
@@ -77,7 +73,7 @@ var appMap = angular.module('botaniMap', ['geolocation']);
         //here is where the map object is created
         //it is centered and zoomed in to an appropriate level and
         //contained in the appropriate bounds
-        //and populated with tree markers
+        //and populated with all the markers
         this.initialize = function(){
             var options = {
                 center: new google.maps.LatLng(47.002927, -120.537427);
@@ -88,9 +84,17 @@ var appMap = angular.module('botaniMap', ['geolocation']);
                 document.getElementById('map'), options
             );
 
-            //this.bounds = new google.maps.latl
+            this.bounds = new google.maps.LatLngBounds(
+                new google.maps.LatLng(46.999761, -120.543179),
+                new google.maps.LatLng(47.010421, -120.531785)
+            );
 
-            setMarkers(map);
+            setTreeMarkers();
+
+            //set up phones initial geolocation
+            navigator.geolocation.getCurrentPosition(updateUsrLoc, locNotFond, {enableHighAccuracy: true});
+
+            return map;
         }
 
     });
@@ -100,23 +104,46 @@ var appMap = angular.module('botaniMap', ['geolocation']);
 
     /*
         mapCtrl controller initializes the map and
+        incorporates a listener that updates phone's geolocation
         incorporates a listener that makes sure the player doesn't 
-        go out of the playing field
+        drag the map of the playing field
 
      */
-    appMap.controller('mapCtrl', ['$scope', 'mapSrv', 'coordFinder', function($scope, mapSrv, coordFinder){
+    appMap.controller('mapCtrl', ['$scope', 'mapSrv', function($scope, mapSrv){
 
-        mapSrv.initialize();
-
-        ///an event listener makes sure the map isn't dragged out of bounds
+        $scope.thisMap = mapSrv.initialize();
 
 
-
-        ///////////////////////////////////////////////////////////////////
+        //this object listens for a change in phone's location and updates everytime change happens
+        $scope watchID = navigator.geolocation.watchPosition(mapSrv.updateUsrLoc, mapSrv.locNotFound, {timeout: 30000, enableHighAccuracy: true});
         
 
-        
+        ///an event listener makes sure the map isn't dragged out of bounds//////////////////////////////////////////////////////////////
+        thisMap.addListener('dragend', function(){
 
+            //map is inside bounds, don't do anything
+            if(mapSrv.bounds.contains(thisMap.getCenter())){
+                return;
+            }
 
+            //map is leaving the given bounds, put it back inside the bounds
+            var cent  = thisMap.getCenter();
+            var xCent = cent.lng();
+            var yCent = cent.lat();
+            var xEast  = mapSrv.bounds.getNorthEast().lng();
+            var yNorth = mapSrv.bounds.getNorthEast().lat();
+            var xWest  = mapSrv.bounds.getSouthWest().lng();
+            var ySouth = mapSrv.bounds.getSouthWest().lat();
+
+            if(xCent > xEast) xCent = xEast;
+            if(xCent < xWest) xCent = xWest;
+            if(yCent > yNorth) yCent = yNorth;
+            if(yCent < ySouth) yCent = ySouth;
+
+            thisMap.setCenter(new google.maps.LatLng(yCent, xCent));
+            
+        });
+        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
         
     }]);
