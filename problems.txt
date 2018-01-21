@@ -1,9 +1,8 @@
 Observations:
 
-ln 17 in mapSrv service:           missing ; before statement
-ln 18 - 26 in mapSrv service:    mixed spaces and tabs
+everywhere in mapSrv.trees 
+                          ln 24 - 32 
+and in mapSrv.setTreeMarkers 
+                            ln 60 - 79
 
-ln 38 in mapSrv service:          expect } to match { from prev line
-ln 39 in mapSrv service:          expect ) 
-                                              missing ; before statement
-                                              expected } to match { from line 34
+"mixed spaces and tabs" warning
