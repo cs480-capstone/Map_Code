@@ -11,7 +11,7 @@ var appMap = angular.module('botaniMap', ['geolocation']);
         ///dummy array should be replaced; added dynamically from the trees in Luke's Database
         */
         /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        val trees = [
+        var trees = [
         	["tree one", 47.002799, -120.540351, true],
         	["tree two", 47.005572, -120.540168, true],
         	["tree three", 47.003758, -120.542840, true],
@@ -20,7 +20,7 @@ var appMap = angular.module('botaniMap', ['geolocation']);
         	["tree six", 47.003370, -120.539825, true],
         	["tree seven", 47.003684, -120.535512, true],
         	["tree eight", 47.005755, -120.542958, true],
-        	["tree nine", 47.010071, -120.540812, true],
+        	["tree nine", 47.010071, -120.540812, true]
         ];
 
         //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -32,16 +32,16 @@ var appMap = angular.module('botaniMap', ['geolocation']);
               if(this.userLoc) this.userLoc.setMap(null);
 
               this.userLoc = new google.maps.Marker({
-                 map: this.map;
-                 position: position.coord;
+                 map: this.map,
+                 position: position.coord
               });
     
-        }
+        };
 
         this.posNotFound = function(error){
             alert('code: ' + error.code +'\n'
                    + 'message: ' + error.message + '\n');
-        }
+        };
         //////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -49,12 +49,12 @@ var appMap = angular.module('botaniMap', ['geolocation']);
         this.setTreeMarkers = function(){
 
         	//define an image for the markers 
-        	var image {
+        	var image = {
         		url: 'http://moziru.com/images/drawn-grass-transparent-17.png',
         		size: new google.maps.Size(20, 30),
         		origin: new google.maps.Point(0,0),
-        		anchor: new google.maps.Point(10, 15), 
-        	}
+        		anchor: new google.maps.Point(10, 15)
+        	};
 
         	for(var i=0; i < trees.length; i++){
         		var nextTree = trees[i];
@@ -68,7 +68,7 @@ var appMap = angular.module('botaniMap', ['geolocation']);
 
         		treeMark.setVisible(nextTree[3]);
         	}
-        }
+        };
 
         //here is where the map object is created
         //it is centered and zoomed in to an appropriate level and
@@ -95,7 +95,7 @@ var appMap = angular.module('botaniMap', ['geolocation']);
             navigator.geolocation.getCurrentPosition(updateUsrLoc, locNotFond, {enableHighAccuracy: true});
 
             return map;
-        }
+        };
 
     });
 
@@ -115,7 +115,7 @@ var appMap = angular.module('botaniMap', ['geolocation']);
 
 
         //this object listens for a change in phone's location and updates everytime change happens
-        $scope watchID = navigator.geolocation.watchPosition(mapSrv.updateUsrLoc, mapSrv.locNotFound, {timeout: 30000, enableHighAccuracy: true});
+        $scope.watchID = navigator.geolocation.watchPosition(mapSrv.updateUsrLoc, mapSrv.locNotFound, {timeout: 30000, enableHighAccuracy: true});
         
 
         ///an event listener makes sure the map isn't dragged out of bounds//////////////////////////////////////////////////////////////
