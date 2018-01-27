@@ -10,7 +10,7 @@ declare var google;
   templateUrl: 'home.html'
 })
 
-export class HomePage {
+export class BotaniMap {
 
     @ViewChild('map') mapElement: ElementRef;  //reference the html component names #map
     
