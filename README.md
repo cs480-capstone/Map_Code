@@ -26,18 +26,20 @@ The following are the main variables that the class BotaniMap uses to manipulate
 The class constructor initializes an object geolocation of type Geolocation that will be used throughout the class. The constructor also initializes three variables: mapBounds, areaCenter, and trees. trees must be initialized by pulling visible trees from the database.
 
 the function mapSetup() is where map is initialized. 
-     -First, the user's geolocation is obtained, this will be used to help determine the initial center of the map
+
+     First, the user's geolocation is obtained, this will be used to help determine the initial center of the map
              if unsuccessful, a small alert message will be shown and the default center will be used
              
-     -Next, the map is initialized, centered and zoomed in to the correct location
+     Next, the map is initialized, centered and zoomed in to the correct location
      
-     -Two functions should then be called to populate the map with markers, these functions are described below
+     Two functions should then be called to populate the map with markers, these functions are described below
      
-     -locWatcher variable is then initialized
+     locWatcher variable is then initialized
      
-     -Finally, the map gets an event listener that executes the keepInBounds function everytime the map is dragged
+     Finally, the map gets an event listener that executes the keepInBounds function everytime the map is dragged
 
 The function updateTreeMarks() takes each item in the tree array and gives it a small marker on the map. each tree marker is a custom image, indicating normal trees and trees tied to events/quests. 
+
 Each tree marker will have a click event attatched to the openWindow() function, which shows an information window about the marker's tree
 
 The function updateUserMark() takes the user's new location and updates the marker on the map. A marker will only be placed if the user is within the boundaries of the playing field
