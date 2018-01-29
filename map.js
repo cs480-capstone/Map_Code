@@ -119,51 +119,59 @@ export class BotaniMap {
     */
     mapSetUp() {
 
-     //set up all the trees here :]
-     this.updateTreeMarks();
-
-
-      //here is where the phone's geolocation is set on the map
+      //here is where the phone's geolocation is first defined
       //there is also an error function just incase the setup was unsuccessful
+      var userLoc = undefined;
       this.geolocation.getCurrentPosition({timeout: 10000, enableHighAccuracy: true}).then((position) => {
-          
-          let userLoc = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-
-          let options = {
-                   center: this.mapBounds.contains(userLoc) ? userLoc : this.areaCenter,
-                   zoom: 16,
-                   mapTypeId: google.maps.MapTypeId.ROADMAP
-          }
-
-          this.map = new google.maps.Map(document.getElementById("map"), options);
-
-
-          this.updateUserMark(userLoc);
+    
+          userLoc = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
           
       }).catch((error) =>{
 
                 console.log('problem getting location', error);
+                alert('code: ' + error.code +'\n'
+                   + 'message: ' + error.message + '\n');
       });
 
-      //here is where we set up a "position watcher" that should listen to a change in the user's location and 
+      //here is where the map is initialized, if the user's geolocation is defined and within mapBounds, 
+      //then it is the map's center, otherwise the default center is used
+      let options = {
+         center: (userLoc !== undefined && this.mapBounds.contains(userLoc)) ? userLoc : this.areaCenter,
+         zoom: 17,
+         mapTypeId: google.maps.MapTypeId.ROADMAP
+      }
+
+      this.map = new google.maps.Map(document.getElementById("map"), options);
+
+      //here is where the map is populated with all the markers
+      this.updateUserMark(userLoc);
+      this.updateTreeMarks();
+
+      //give the map element a listener that performs keepInBounds whenever the user stops dragging the map
+      this.map.addListener('dragend', function(){
+          this.keepInBounds();
+      });
+
+
+      //here is where we set up a "position watcher" that should listen to a change in the user's location and update the user's
+      //marker accordingly
       this.locWatcher = this.geolocation.watchPosition()
-                        .filter((p) => p.coords !== undefined)  //filter out errors
+                        .filter((p) => p.coords !== undefined)  
                         .subscribe(position => {
                             let newUserLoc = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
                             this.updateUserMark(newUserLoc);
                         });
 
-      //give the map element a listener that performs keepInBounds whenever the user stops dragging the map
-      //this.mapElement.addListener("dragend", this.keepInBounds());
-
+    
     }
 
     /*
-       this function defines two images based on the icons in the assets/imgs folder
+       this function defines images based on the icons in the assets/imgs folder
        then it populates the map with a series of tree markers, using the appropriate image
        tempMarker if it's a normal tree, questMarker if it's a quest based tree
     */
     updateTreeMarks(){
+      console.log("updating tree markers");
         var image = {
             url: '../assets/imgs/tempMarker',
             size: new google.maps.Size(20, 20),
@@ -185,11 +193,33 @@ export class BotaniMap {
               position: {lat: nextTree.lat, lng: nextTree.lng},
               map: this.map,
               icon: (nextTree.quest = true) ? questImage : image,
-              title: nextTree.name
             });
-
-            treeMark.setVisible(nextTree.visible);
+            
+            //each marker has an event listener for when they are clicked on
+            treeMark.addListener('click', function(){
+                   this.openWindow(nextTree, treeMark);
+            });
         }
+    }
+
+    /*
+       this function  should be called whenever a tree marker is clicked,
+       it opens a closeable window which should display info about the tree and the 
+       option to submit data if the user is within range
+    */
+    openWindow(tree, treeMark){
+         var cont = '<div id="treeInfo">'+
+                            '<h2> ' + tree.name + '</h2>'+
+                            '<p> species </p>'+
+                            '<p> collect info </p>'+
+                       '</div>';
+         var wind = new google.maps.InfoWindow({
+               content: cont
+         }); 
+
+         wind.open(this.map, treeMark);
+
+
     }
 
     /*
@@ -202,10 +232,10 @@ export class BotaniMap {
 
         //test if the user's position is within the bounds and update with a new marker 
         //if it is
-        if(this.mapBounds.contains(userLoc)){
+        if(userLoc !== undefined && this.mapBounds.contains(userLoc)){
             this.userMark = new google.maps.Marker({
+                 position: userLoc.coord,
                  map: this.map,
-                 center: userLoc.coord
             });
 
         }
@@ -213,7 +243,7 @@ export class BotaniMap {
     }
 
     /*
-        this function is attached to a listener in the html file
+        this function is attached to the map's action listener
         it makes sure the map is within the bounds of the playing 
         field when the user quits dragging the map
     */
@@ -237,7 +267,7 @@ export class BotaniMap {
         if(yCent > yNorth) yCent = yNorth;
         if(yCent < ySouth) yCent = ySouth;
 
-        this.map.setCenter(new google.maps.LatLng(yCent, xCent));
+        this.map.panTo(new google.maps.LatLng(yCent, xCent));
     }
 
    
