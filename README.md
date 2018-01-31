@@ -45,4 +45,9 @@ Each tree marker will have a click event attatched to the openWindow() function,
 The function updateUserMark() takes the user's new location and updates the marker on the map. A marker will only be placed if the user is within the boundaries of the playing field
 
 The function keepInBounds() makes sure the center of the map is within mapBounds everytime the user finshes dragging the map
+
+/*
+* TO INSTALL THE GEOLOCATION DO npm install @ionic-native/core --save npm install @ionic-native/geolocation --save ionic plugin add corodva-plugin-geolocation
+*
+*/
    
