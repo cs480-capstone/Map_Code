@@ -1,7 +1,9 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
 import { NavController } from 'ionic-angular';
 import { Geolocation } from '@ionic-native/geolocation';
+import { Http } from '@angular/http';
 import 'rxjs/add/operator/filter';
+import 'rxjs/add/operator/map';
 
 declare var google;
 
@@ -17,14 +19,14 @@ export class BotaniMap {
     map: any;             //the map object
     mapBounds: any;       //the boundaries of the playing field
     areaCenter: any;      //the center of the playng field
+    userLoc: any;
     userMark: any;        //the marker that shows the users location
     locWatcher: any;      //variable that holds the promise that resolves the users location
-    trees: any;
     
     /*
         the constructor initializes the center and boundaries of the playing field
     */
-    constructor(public navCtrl: NavController, public geolocation: Geolocation){
+    constructor(public navCtrl: NavController, public geolocation: Geolocation, public http: Http){
         this.areaCenter = new google.maps.LatLng(47.002927, -120.537427);
 
         this.mapBounds = new google.maps.LatLngBounds(
@@ -32,76 +34,7 @@ export class BotaniMap {
                                 new google.maps.LatLng(47.010421, -120.531785)
                              );
 
-        /*
-        ///dummy array should be replaced; added dynamically from the trees in Luke's Database
-        */
-        /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        this.trees = [
-           {
-              name: "tree one",
-              lat:  47.002799,
-              lng:  -120.540351,
-              visible: true,
-              quest: true
-           },
-           {
-              name: "tree two",
-              lat:  47.005572,
-              lng:  -120.540168, 
-              visible: true,
-              quest: false
-           },
-           {
-              name: "tree three",
-              lat:  47.003758,
-              lng:  -120.542840,
-              visible: true,
-              quest: false
-           },
-           {
-              name: "tree four",
-              lat:  47.005016,
-              lng:  -120.539600, 
-              visible: true,
-              quest: false
-           },
-           {
-              name: "tree five",
-              lat:  47.001153,
-              lng:  -120.542925,
-              visible: true,
-              quest: false
-           },
-           {
-              name: "tree six",
-              lat:  47.003370,
-              lng:  -120.539825,
-              visible: true,
-              quest: false
-           },
-           {
-              name: "tree seven",
-              lat:  47.003684,
-              lng:  -120.535512,
-              visible: true,
-              quest: true
-           },
-           {
-              name: "tree eight",
-              lat:  47.005755, 
-              lng:  -120.542958,
-              visible: true,
-              quest: false
-           },
-           {
-              name: "tree nine",
-              lat:  47.010071,
-              lng:  -120.540812, 
-              visible: true,
-              quest: false
-           }
-        ];
-        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        
     }
 
     /*
@@ -109,6 +42,8 @@ export class BotaniMap {
     */  
     ionViewDidLoad(){
         this.mapSetUp();
+        this.getTreeMarks();
+        this.updateUserMark(this.userLoc);
     }
 
     /*
@@ -121,37 +56,28 @@ export class BotaniMap {
 
       //here is where the phone's geolocation is first defined
       //there is also an error function just incase the setup was unsuccessful
-      var userLoc = undefined;
+      //var userLoc = undefined;
       this.geolocation.getCurrentPosition({timeout: 10000, enableHighAccuracy: true}).then((position) => {
     
-          userLoc = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+          this.userLoc = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
           
       }).catch((error) =>{
 
                 console.log('problem getting location', error);
                 alert('code: ' + error.code +'\n'
                    + 'message: ' + error.message + '\n');
+                this.userLoc = undefined;
       });
 
       //here is where the map is initialized, if the user's geolocation is defined and within mapBounds, 
       //then it is the map's center, otherwise the default center is used
       let options = {
-         center: (userLoc !== undefined && this.mapBounds.contains(userLoc)) ? userLoc : this.areaCenter,
+         center: (this.userLoc !== undefined && this.mapBounds.contains(this.userLoc)) ? this.userLoc : this.areaCenter,
          zoom: 17,
          mapTypeId: google.maps.MapTypeId.ROADMAP
       }
 
       this.map = new google.maps.Map(document.getElementById("map"), options);
-
-      //here is where the map is populated with all the markers
-      this.updateUserMark(userLoc);
-      this.updateTreeMarks();
-
-      //give the map element a listener that performs keepInBounds whenever the user stops dragging the map
-      this.map.addListener('dragend', function(){
-          this.keepInBounds();
-      });
-
 
       //here is where we set up a "position watcher" that should listen to a change in the user's location and update the user's
       //marker accordingly
@@ -165,40 +91,52 @@ export class BotaniMap {
     
     }
 
+    
+    /*
+       this function receives tree data from a json file and uses it to populate the map with custom markers
+    */
+    getTreeMarks(){
+    	this.http.get('assets/data/treemarks.json')
+    	.map((res) => res.json())
+    	.subscribe(data => {
+    		this.updateTreeMarks(data);
+
+    	});
+    }
+
     /*
        this function defines images based on the icons in the assets/imgs folder
        then it populates the map with a series of tree markers, using the appropriate image
        tempMarker if it's a normal tree, questMarker if it's a quest based tree
     */
-    updateTreeMarks(){
+    updateTreeMarks(trees){
       console.log("updating tree markers");
         var image = {
-            url: '../assets/imgs/tempMarker',
-            size: new google.maps.Size(20, 20),
-            origin: new google.maps.Point(0,0),
-            anchor: new google.maps.Point(10, 10)
+            url: '../assets/icon/treemark',
+            size: { width: 20, height: 20}
         };
 
-        var questImage = {
+        /*var questImage = {
             url: '../assets/imgs/questMarker',
             size: new google.maps.Size(20, 30),
             origin: new google.maps.Point(0,0),
             anchor: new google.maps.Point(10, 15)
-        }
+        }*/
 
-        for(let i=0; i < this.trees.length; i++){
-            var nextTree = this.trees[i];
+        for(let tree of trees){
+        	var loc = new google.maps.LatLng(tree.lati, tree.longi);
+        	var treeMark = new google.maps.Marker({
+        		position: loc,
+        		title: trees.name,
+        		icon: image
+        	});
+        	treeMark.setMap(this.map);
 
-            var treeMark = new google.maps.Marker({
-              position: {lat: nextTree.lat, lng: nextTree.lng},
-              map: this.map,
-              icon: (nextTree.quest = true) ? questImage : image,
-            });
-            
-            //each marker has an event listener for when they are clicked on
+        	/*/each marker has an event listener for when they are clicked on
             treeMark.addListener('click', function(){
                    this.openWindow(nextTree, treeMark);
-            });
+            });*/
+
         }
     }
 
@@ -234,9 +172,9 @@ export class BotaniMap {
         //if it is
         if(userLoc !== undefined && this.mapBounds.contains(userLoc)){
             this.userMark = new google.maps.Marker({
-                 position: userLoc.coord,
-                 map: this.map,
+                 position: userLoc.coord 
             });
+            userMark.setMap(this.map);
 
         }
 
