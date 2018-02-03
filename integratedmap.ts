@@ -117,31 +117,29 @@ export class BotaniMap {
        tempMarker if it's a normal tree, questMarker if it's a quest based tree
     */
     updateTreeMarks(trees){
-      console.log("updating tree markers");
-        var image = {
-            url: '../assets/icon/treemark',
-            size: { width: 20, height: 20}
-        };
+        for(let tree of trees){
+          var loc = new google.maps.LatLng(tree.lat, tree.long);
+          var treeMark = new google.maps.Marker({
+            position: loc,
+            map: this.map
+          });
+ 
+          var info = '<div id="treeInfo">'+
+          '<h2> Tree Species </h2>'+
+          '<p> Tree Info </p>'+
+	  '<p> Tree Info </p>'+
+          '<p> click to collect info </p>'+
+          '</div>';
 
-        /*var questImage = {
-            url: '../assets/imgs/questMarker',
-            size: new google.maps.Size(20, 30),
-            origin: new google.maps.Point(0,0),
-            anchor: new google.maps.Point(10, 15)
-        }*/
-
-        for(let tree of tree_list){
-        	var loc = new google.maps.LatLng(tree.lat, tree.long);
-        	var treeMark = new google.maps.Marker({
-        		position: loc,
-        		icon: image
-        	});
-        	treeMark.setMap(this.map);
-
-        	/*/each marker has an event listener for when they are clicked on
-            treeMark.addListener('click', function(){
-                   this.openWindow(nextTree, treeMark);
-            });*/
+          var window  = new google.maps.InfoWindow();
+          
+          //each marker has an event listener for when they are clicked on
+          google.maps.event.addListener( treeMark, 'click', (function(treeMark, info, window){
+              return function(){
+                  window.setContent(info);
+                  window.open(this.map, treeMark);
+              };
+          })(treeMark, info, window));
 
         }
     }
