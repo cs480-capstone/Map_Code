@@ -1,11 +1,12 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
-import { NavController } from 'ionic-angular';
+import { NavController, ToastController} from 'ionic-angular';
 import { Geolocation } from '@ionic-native/geolocation';
 import { Http } from '@angular/http';
 import { TreeFactory } from '../../providers/treefactory';
 import { CollectFlowers } from '../collect-flowers/collect-flowers';
 import 'rxjs/add/operator/filter';
 import 'rxjs/add/operator/map';
+import { AlertController } from 'ionic-angular/components/alert/alert-controller';
 
 declare var google;
 
@@ -29,7 +30,9 @@ export class BotaniMap {
     /*
         the constructor initializes the center and boundaries of the playing field
     */
-    constructor(public navCtrl: NavController, public geolocation: Geolocation, public http: Http, private TreeFactory : TreeFactory){
+    constructor(public navCtrl: NavController, public geolocation: Geolocation, 
+                public http: Http, private TreeFactory : TreeFactory, 
+                private alertCtrl: AlertController, private toastCtrl: ToastController){
         this.areaCenter = new google.maps.LatLng(47.002927, -120.537427);
 
         this.mapBounds = new google.maps.LatLngBounds(
@@ -42,16 +45,43 @@ export class BotaniMap {
         
     }
 
-    goToPage()
-    {
-        console.log("go");
-        this.navCtrl.push(CollectFlowers);
-    }
-
-    getTrees()
-    {
+    getTrees(){
         let saplings = this.TreeFactory.getTrees()
         this.plantTrees(saplings);
+    }
+
+    //planTrees loops through a list of saplings and turns them into trees
+    plantTrees(saplings : sapling[]){
+        //Loops through list
+        for(let i = 0; i < saplings.length; i++)
+        {
+            //and pushes instanciated objects onto the tree_list
+            this.tree_list.push(new Tree(saplings[i].lat,saplings[i].long, this.wrapTrees(saplings[i]), saplings[i].special, saplings[i].hidden));
+        }
+    }
+
+    //This recursive method wraps the tree object in its decorator classes
+    //The decorator list of each sapling is treated like a stack
+    //The top element is popped off and used to create the 
+    wrapTrees(target : sapling) : DecoratorTree  {   
+        //Base case
+        //Sets innermost decorator class's child to null
+        if(target.decs.length === 0){
+               return null;
+        }
+        //Recursive case 
+        //Wrapping still reqruied 
+        /*------NEW DECORATORS MUST BE ADDED TO THIS SWITCH------*/
+        switch(target.decs.pop()){
+                   case 'fl':
+                       return new FallingTree(this.wrapTrees(target));
+                   case 'fw':
+                       return new FloweringTree(this.wrapTrees(target))
+                   case 'fr':
+                       return new FrutingTree(this.wrapTrees(target));
+                   case 'pn':
+                       return new PineConeTree(this.wrapTrees(target));
+        }  
     }
 
     /*
@@ -59,8 +89,9 @@ export class BotaniMap {
     */  
     ionViewDidLoad(){
         this.mapSetUp();
-        this.getTreeMarks();
+        this.updateTreeMarks(this.tree_list);
         this.updateUserMark(this.userLoc);
+        this.createLocWatcher();
     }
 
     /*
@@ -71,67 +102,32 @@ export class BotaniMap {
     */
     mapSetUp() {
 
-      //here is where the phone's geolocation is first defined
-      //there is also an error function just incase the setup was unsuccessful
-      //var userLoc = undefined;
-      this.geolocation.getCurrentPosition({timeout: 10000, enableHighAccuracy: true}).then((position) => {
-    
-          this.userLoc = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-          
-      }).catch((error) =>{
-
-                console.log('problem getting location', error);
-                alert('code: ' + error.code +'\n'
-                   + 'message: ' + error.message + '\n');
-                this.userLoc = undefined;
-      });
-
-      //here is where the map is initialized, if the user's geolocation is defined and within mapBounds, 
-      //then it is the map's center, otherwise the default center is used
-      let options = {
-         center: (this.userLoc !== undefined && this.mapBounds.contains(this.userLoc)) ? this.userLoc : this.areaCenter,
-         zoom: 17,
-         mapTypeId: google.maps.MapTypeId.ROADMAP
-      }
-
-      this.map = new google.maps.Map(document.getElementById("map"), options);
-
-      //here is where the map is populated with all the markers
-     // this.updateUserMark(userLoc);
-      //this.updateTreeMarks();
-
-      //give the map element a listener that performs keepInBounds whenever the user stops dragging the map
-     /* this.map.addListener('dragend', function(){
-          this.keepInBounds();
-      });*/
-
-
-      //here is where we set up a "position watcher" that should listen to a change in the user's location and update the user's
-      //marker accordingly
-      this.locWatcher = this.geolocation.watchPosition()
-                        .filter((p) => p.coords !== undefined)  
-                        .subscribe(position => {
-                            let newUserLoc = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
-                            this.updateUserMark(newUserLoc);
-                        });
-
-    
+        //here is where the phone's geolocation is first defined
+        //there is also an error function just incase the setup was unsuccessful
+        //var userLoc = undefined;
+        this.geolocation.getCurrentPosition({timeout: 10000, enableHighAccuracy: true}).then((position) => {
+      
+            this.userLoc = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+            
+        }).catch((error) =>{
+  
+                  console.log('problem getting location', error);
+                  alert('code: ' + error.code +'\n'
+                     + 'message: ' + error.message + '\n');
+                  this.userLoc = undefined;
+        });
+  
+        //here is where the map is initialized, if the user's geolocation is defined and within mapBounds, 
+        //then it is the map's center, otherwise the default center is used
+        let options = {
+           center: (this.userLoc !== undefined && this.mapBounds.contains(this.userLoc)) ? this.userLoc : this.areaCenter,
+           zoom: 17,
+           mapTypeId: google.maps.MapTypeId.ROADMAP
+        }
+  
+        this.map = new google.maps.Map(document.getElementById("map"), options);
+      
     }
-
-    /*
-       this function defines images based on the icons in the assets/imgs folder
-       then it populates the map with a series of tree markers, using the appropriate image
-       tempMarker if it's a normal tree, questMarker if it's a quest based tree
-    */
-    getTreeMarks(){
-     // this.http.get('assets/data/treemarks.json')
-      //.map((res) => res.json())
-      //.subscribe(data => {
-        this.updateTreeMarks(this.tree_list);
-
-      //});
-    }
-
 
     updateTreeMarks(trees){
         var image = {
@@ -147,8 +143,7 @@ export class BotaniMap {
         }*/
 
         for(let tree of trees){
-            if(!tree.hidden)
-            {
+            if(!tree.hidden){
                 var loc = new google.maps.LatLng(tree.lat, tree.long);
                 var treeMark = new google.maps.Marker({
                     position: loc,
@@ -158,40 +153,42 @@ export class BotaniMap {
                 });
         
                 var cont = '<div id="treeInfo">'+
-                '<h2> This iz u treeeee</h2>'+
+                '<h2> ' + tree.name +'</h2>'+
                 '<p> species </p>'+
-                '<button ion-button (click) = "goToPage()"> click to collect info </button>'+
+                '<button (click) = "goToPage()"> click to collect info </button>'+
                 '</div>';
+
+                var clickme = '<button (click) = "goToPage()"> click to collect info </button>';
 
                 var window  = new google.maps.InfoWindow();
                 
                 //each marker has an event listener for when they are clicked on
-                google.maps.event.addListener( treeMark, 'click', (function(treeMark, cont, window){
+                google.maps.event.addListener( treeMark, 'click', (function(treeMark, clickme, window){
                     return function(){
-                        window.setContent(cont);
+                        window.setContent(clickme);
                         window.open(this.map, treeMark);
                     };
-                })(treeMark, cont, window));
+                })(treeMark, clickme, window));
             }
-         }
+        }
     }
 
-    /*
+     /*
        this function  should be called whenever a tree marker is clicked,
        it opens a closeable window which should display info about the tree and the 
        option to submit data if the user is within range
     */
     openWindow(tree, treeMark){
-         var cont = '<div id="treeInfo">'+
-                            '<h2> ' + tree.name + '</h2>'+
-                            '<p> species </p>'+
-                            '<p> collect info </p>'+
-                       '</div>';
-         var wind = new google.maps.InfoWindow({
-               content: cont
-         }); 
+        var cont = '<div id="treeInfo">'+
+                           '<h2> ' + tree.name + '</h2>'+
+                           '<p> species </p>'+
+                           '<p> collect info </p>'+
+                      '</div>';
+        var wind = new google.maps.InfoWindow({
+              content: cont
+        }); 
 
-         wind.open(this.map, treeMark);
+        wind.open(this.map, treeMark);
 
 
     }
@@ -217,53 +214,161 @@ export class BotaniMap {
     }
 
     /*
-        this function is attached to the map's action listener
-        it makes sure the map is within the bounds of the playing 
-        field when the user quits dragging the map
+        here is where we set up a "position watcher" that should listen to a change in the user's location and update the user's
+        marker accordingly
     */
+    createLocWatcher(){
+        this.locWatcher = this.geolocation.watchPosition()
+            .filter((p) => p.coords !== undefined)  
+            .subscribe(position => {
+                let newUserLoc = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
+                this.updateUserMark(newUserLoc);
+                //this.revealHidden();
+        });
+    }
 
-       //planTrees loops through a list of saplings and turns them into trees
-       plantTrees(saplings : sapling[])
-       {
-           //Loops through list
-           for(let i = 0; i < saplings.length; i++)
-           {
-               //and pushes instanciated objects onto the tree_list
-               this.tree_list.push(new Tree(saplings[i].lat,saplings[i].long, this.wrapTrees(saplings[i]), saplings[i].special, saplings[i].hidden));
-           }
-       }
-   
-   
-       //This recursive method wraps the tree object in its decorator classes
-       //The decorator list of each sapling is treated like a stack
-       //The top element is popped off and used to create the 
-       wrapTrees(target : sapling) : DecoratorTree  
-       {   
-           //Base case
-           //Sets innermost decorator class's child to null
-           if(target.decs.length === 0)
-           {
-               return null;
-           }
-           //Recursive case 
-           //Wrapping still reqruied 
-           /*------NEW DECORATORS MUST BE ADDED TO THIS SWITCH------*/
-           switch(target.decs.pop())
-               {
-                   case 'fl':
-                       return new FallingTree(this.wrapTrees(target));
-                   case 'fw':
-                       return new FloweringTree(this.wrapTrees(target))
-                   case 'fr':
-                       return new FrutingTree(this.wrapTrees(target));
-                   case 'pn':
-                       return new PineConeTree(this.wrapTrees(target));
-               }  
-           }
+    /*
+        here is where the the app checks if it needs to reveal a 
+        nearby hidden tree
+    */
+    revealHidden(){
+    
+        let farProxim = 60;
+    
+        let nearProxim = 20;
+    
+        let closest = this.findTree(true);
+    
+        if(closest.tree !== undefined){
+            let proxim = this.inProximity(closest);
+            if(proxim <= nearProxim){
+                this.alertMessage(1);
+                var loc = new google.maps.LatLng(closest.tree.lat, closest.tree.long);
+                var treeMark = new google.maps.Marker({
+                    position: loc,
+                    //title: trees.name,
+                    map: this.map
+                    //icon: image
+                });
+                //make the hidden value in the database false
+                //notify everyone else that a tree has been found
+            }else if(proxim <= farProxim){
+                let toast = this.toastCtrl.create({
+                    message:  'a hidden tree is ' + proxim + 'feet away',
+                    duration: 4000,
+                    position: 'middle',
+                    dismissOnPageChange: true
+                });
+    
+                toast.present();
+            }
+        }
+
+    }
+
+    /*
+        this function, attached with an on click listener to
+        a button in the HTML page, allows the user to observe the
+        nearest tree, if possible
+    */
+    observeNearest(){
+    
+        let proxim = 20;
+        
+        let closest = this.findTree(false);
+    
+        if(closest.tree !== undefined && this.inProximity(closest) <= proxim){
+            //this should be the part where we take the user to the data collection screen 
+            //which is showing collection options based on the specific tree
+            this.goToPage();
+        }else{
+            //this message is generic
+            this.alertMessage(2);
+        }
+        
+    }
+
+    /*
+        this function returns the tree closest to the user 
+        if any, the flag parameter (true or false) tells us
+        whether to look for a hidden tree or visible tree
+    */
+    findTree(hiddenFlag){
+        let minLatDist = 100000;
+        let minLngDist = 100000;
+        let yDist;
+        let xDist; 
+        let targetTree;
+
+        //find the closest visible tree from the list of trees
+        for(let tree of this.tree_list){
+            //the distance between the two latitudes
+            yDist = (this.userLoc.lat() > tree.lat) 
+                ? this.userLoc.lat() - tree.lat 
+                : tree.lat - this.userLoc.lat();
+
+            //the distance between the two longitudes
+            xDist = (this.userLoc.lng() > tree.long)
+                ? this.userLoc.lng() - tree.long
+                : tree.long - this.userLoc.lng();
+            
+            //make this tree the closest if it appears closer
+            if(yDist < minLatDist && 
+               xDist < minLngDist && 
+               tree.hidden === hiddenFlag){
+                   targetTree = tree; 
+                   minLatDist = yDist;
+                   minLngDist = xDist; 
+            }
+                    
+        }
+
+        if(targetTree !== undefined){
+            return {tree: targetTree, 
+                    latDist: yDist,
+                    lngDist: xDist};
+        }else{
+            return undefined;
+        }
 
 
+    }
+
+    /*
+        this function returns the distance a user is from a tree
+    */
+    inProximity(closest){
+        let a = closest.latDist * closest.latDist;
+        let b = closest.lngDist * closest.lngDist;
+        let squaredDist = a+b;
+    
+        return Math.sqrt(squaredDist);
+    }
+
+    goToPage()
+    {
+        console.log("go");
+        this.navCtrl.push(CollectFlowers);
+    }
+
+    alertMessage(num){
+
+        let titleStr = (num === 1) ? 'New Tree Available' : 'Can\'t Collect Data';
+        let subStr   = (num === 1) 
+            ? 'A new Tree has been discovered, hurry and make some observations on it!'
+            : 'You aren\'t within the range of any of the trees on the map';
+
+        let alert = this.alertCtrl.create({
+            title: titleStr,
+            subTitle: subStr,
+            buttons: ['OK']
+        });
+
+        alert.present();
+    }
 
 } 
+
 //interface serves as a buffer between raw JSON and Tree objects
 interface sapling
 {
