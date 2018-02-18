@@ -1,5 +1,4 @@
 import { Component, ViewChild, ElementRef } from '@angular/core';
-//You may have to import some stuff
 import { NavController, ToastController} from 'ionic-angular';
 import { Geolocation } from '@ionic-native/geolocation';
 import { Http } from '@angular/http';
@@ -28,9 +27,9 @@ export class BotaniMap {
     locWatcher: any;      //variable that holds the promise that resolves the users location
     tree_list : Tree[];
     
-    /*
-        the constructor initializes the center and boundaries of the playing field
-    */
+    //initial setup-------------------------------------------------------------------------------------------------
+
+    //the constructor initializes the center and boundaries of the playing field
     constructor(public navCtrl: NavController, public geolocation: Geolocation, 
                 public http: Http, private TreeFactory : TreeFactory, 
                 private alertCtrl: AlertController, private toastCtrl: ToastController){
@@ -85,9 +84,9 @@ export class BotaniMap {
         }  
     }
 
-    /*
-        the map itself won't be initialized until the view is ready
-    */  
+    //when map element is ready--------------------------------------------------------------------------------------
+
+    // the map itself won't be initialized until the view is ready  
     ionViewDidLoad(){
         this.mapSetUp();
         this.updateTreeMarks(this.tree_list);
@@ -155,43 +154,21 @@ export class BotaniMap {
         
                 var cont = '<div id="treeInfo">'+
                 '<h2> ' + tree.name +'</h2>'+
-                '<p> species </p>'+
-                '<button (click) = "goToPage()"> click to collect info </button>'+
+                '<p> Balsam Fir </p>'+
+                '<p> Pine Tree </p>' + 
                 '</div>';
-
-                var clickme = '<button (click) = "goToPage()"> click to collect info </button>';
 
                 var window  = new google.maps.InfoWindow();
                 
                 //each marker has an event listener for when they are clicked on
-                google.maps.event.addListener( treeMark, 'click', (function(treeMark, clickme, window){
+                google.maps.event.addListener( treeMark, 'click', (function(treeMark, cont, window){
                     return function(){
-                        window.setContent(clickme);
+                        window.setContent(cont);
                         window.open(this.map, treeMark);
                     };
-                })(treeMark, clickme, window));
+                })(treeMark, cont, window));
             }
         }
-    }
-
-     /*
-       this function  should be called whenever a tree marker is clicked,
-       it opens a closeable window which should display info about the tree and the 
-       option to submit data if the user is within range
-    */
-    openWindow(tree, treeMark){
-        var cont = '<div id="treeInfo">'+
-                           '<h2> ' + tree.name + '</h2>'+
-                           '<p> species </p>'+
-                           '<p> collect info </p>'+
-                      '</div>';
-        var wind = new google.maps.InfoWindow({
-              content: cont
-        }); 
-
-        wind.open(this.map, treeMark);
-
-
     }
 
     /*
@@ -215,7 +192,8 @@ export class BotaniMap {
     }
 
     /*
-        here is where we set up a "position watcher" that should listen to a change in the user's location and update the user's
+        here is where we set up a "position watcher" that should listen to a 
+        change in the user's location and update the user's
         marker accordingly
     */
     createLocWatcher(){
@@ -224,10 +202,11 @@ export class BotaniMap {
             .subscribe(position => {
                 let newUserLoc = new google.maps.LatLng(position.coords.latitude, position.coords.longitude);
                 this.updateUserMark(newUserLoc);
-                //this.revealHidden();
+                this.revealHidden();
         });
     }
 
+    //tree search-----------------------------------------------------------------------------------------------------
     /*
         here is where the the app checks if it needs to reveal a 
         nearby hidden tree
@@ -240,11 +219,12 @@ export class BotaniMap {
     
         let closest = this.findTree(true);
     
-        if(closest.tree !== undefined){
+        if(closest !== undefined){
             let proxim = this.inProximity(closest);
             if(proxim <= nearProxim){
                 this.alertMessage(1);
-                var loc = new google.maps.LatLng(closest.tree.lat, closest.tree.long);
+                var loc = new google.maps.LatLng(this.tree_list[closest.ind].lat, 
+                                                 this.tree_list[closest.ind].long);
                 var treeMark = new google.maps.Marker({
                     position: loc,
                     //title: trees.name,
@@ -254,17 +234,30 @@ export class BotaniMap {
                 //make the hidden value in the database false
                 //notify everyone else that a tree has been found
             }else if(proxim <= farProxim){
-                let toast = this.toastCtrl.create({
-                    message:  'a hidden tree is ' + proxim + 'feet away',
-                    duration: 4000,
-                    position: 'middle',
-                    dismissOnPageChange: true
-                });
-    
-                toast.present();
+                this.hintToast({
+                    pro: proxim,
+                    dir: closest.direct
+                })
             }
+        }else{
+            this.hintToast(undefined);
         }
 
+    }
+
+    hintToast(hints){
+        let toastMessg   = (hints === undefined) 
+            ? 'No hidden trees anywhere near you right now'
+            : 'The closest hidden tree is ' + hints.pro + 'feet away to the ' + hints.dir + '!!';
+
+        let toast = this.toastCtrl.create({
+            message: toastMessg,
+            duration: 4000,
+            position: 'middle',
+            dismissOnPageChange: true
+        });
+
+        toast.present();
     }
 
     /*
@@ -278,7 +271,7 @@ export class BotaniMap {
         
         let closest = this.findTree(false);
     
-        if(closest.tree !== undefined && this.inProximity(closest) <= proxim){
+        if(closest !== undefined && this.inProximity(closest) <= proxim){
             //this should be the part where we take the user to the data collection screen 
             //which is showing collection options based on the specific tree
             this.goToPage();
@@ -299,35 +292,49 @@ export class BotaniMap {
         let minLngDist = 100000;
         let yDist;
         let xDist; 
-        let targetTree;
+        let targetInd = -1;
+        let index = 0;
+        let direct1 = "";
+        let direct2 = "";
 
         //find the closest visible tree from the list of trees
         for(let tree of this.tree_list){
             //the distance between the two latitudes
-            yDist = (this.userLoc.lat() > tree.lat) 
-                ? this.userLoc.lat() - tree.lat 
-                : tree.lat - this.userLoc.lat();
+            if(this.userLoc.lat() > tree.lat){
+                yDist = this.userLoc.lat() - tree.lat;
+                direct1 = "South";
+            }else{
+                yDist = tree.lat - this.userLoc.lat();
+                direct1 = "North";
+            }
 
             //the distance between the two longitudes
-            xDist = (this.userLoc.lng() > tree.long)
-                ? this.userLoc.lng() - tree.long
-                : tree.long - this.userLoc.lng();
+            if(this.userLoc.lng() > tree.long){
+                xDist = this.userLoc.lng() - tree.long;
+                direct2 = "West";
+            }else{
+                xDist = tree.long - this.userLoc.lng();
+                direct2 = "East";
+            }
             
             //make this tree the closest if it appears closer
             if(yDist < minLatDist && 
                xDist < minLngDist && 
                tree.hidden === hiddenFlag){
-                   targetTree = tree; 
+                   targetInd = index; 
                    minLatDist = yDist;
                    minLngDist = xDist; 
             }
-                    
+
+            index++;
+   
         }
 
-        if(targetTree !== undefined){
-            return {tree: targetTree, 
+        if(targetInd >= -1){
+            return {ind: targetInd, 
                     latDist: yDist,
-                    lngDist: xDist};
+                    lngDist: xDist,
+                    direct: direct1+direct2};
         }else{
             return undefined;
         }
@@ -368,7 +375,9 @@ export class BotaniMap {
         alert.present();
     }
 
-} 
+}
+
+//END OF BOTANIMAP--------------------------------------------------------------------------------------------------
 
 //interface serves as a buffer between raw JSON and Tree objects
 interface sapling
