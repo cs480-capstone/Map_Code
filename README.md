@@ -54,11 +54,13 @@ the function createLocWatcher() initializes the locWatcher variable that polls f
 **These functions help the user search for hidden trees and observe visible trees**
 
 The function revealHidden() is called based on the change in the user's geolocation. It uses findTree() (described below) to obtain the hidden tree closest to the user (if any). 
+
     >>- If the user is within a small range from the tree (say 10 feet), they have found the tree and will get awarded points. 
              other users will be notified and the tree's hidden flag will change in the database. 
     >>- If the user is within a wide range of the tree (say, 60 feet), the user will get a toast message as a hint.
 
-The function observeNearest() is also called based on the user's geolocation. It uses findTree() (described below) to obtain the visible tree closest to the user (if any). 
+The function observeNearest() is also called based on the user's geolocation. It uses findTree() (described below) to obtain the visible tree closest to the user (if any).
+
     >>- If the user is within a small range from the tree (say, 10 feet), they are sent to the data collection page, where only info
                 pertaining to that specific tree should be visible. 
     >>- If the user is not within range if the tree, they will be informed with a message.
