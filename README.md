@@ -1,5 +1,5 @@
 # Map_Code
-This document Describes class BotaniMap, this class is the half of the TreeComponent page that interracts with the HTML file that contains the map element. This class has two purposes:
+This document Describes class BotaniMap, this class is the half of the TreeComponent page that interracts with the HTML file containing the map element. This class has two purposes:
  
  1. Initialize the map whenever the map page is opened by the user.
  
@@ -45,7 +45,7 @@ the function mapSetup() is where map is initialized.
              
    -Next, the map is initialized, centered and zoomed in to the correct location.
 
-The function updateTreeMarks() takes each item in the tree array and gives it a small marker on the map. each tree marker is a custom image. Each tree also has a click event listener that triggers the openWindow() function. This function makes a bubble appear, showing the user information about the specific tree.
+The function updateTreeMarks() takes each item in the tree array and gives it a small marker on the map. each tree marker is a custom image. Each tree also has a click event listener that triggers a small function. This function makes a bubble appear, showing the user information about the specific tree.
 
 The function updateUserMark() takes the user's new location and updates the marker on the map. A marker will only be placed if the user is within the boundaries of the playing field.
 
@@ -57,7 +57,10 @@ The function revealHidden() is called based on the change in the user's geolocat
 
    - If the user is within a small range from the tree (say 10 feet), they have found the tree and will get awarded points. 
              other users will be notified and the tree's hidden flag will change in the database. 
-   - If the user is within a wide range of the tree (say, 60 feet), the user will get a toast message as a hint.
+   - If the user is within a wide range of the tree (say, 60 feet), they will get a toast message as a hint.
+   - If the user is outside of the range of any tree, a toast message will tell them so.
+
+The function hintToast() decides which of the two above toast messages to present to the user.
 
 The function observeNearest() is also called based on the user's geolocation. It uses findTree() (described below) to obtain the visible tree closest to the user (if any).
 
@@ -65,9 +68,9 @@ The function observeNearest() is also called based on the user's geolocation. It
                 pertaining to that specific tree should be visible. 
    - If the user is not within range if the tree, they will be informed with a message.
 
-The function findTree() takes a boolean flag which dictates what kind of tree to find (hidden or visible). This function searches for the tree of the correct visibility that is closest to userLoc. A successful search returns the index of the correct tree, an unsiccessful search returns undefined.
+The function findTree() takes a boolean flag which dictates what kind of tree to find (hidden or visible). This function searches for the tree of the correct visibility that is closest to userLoc. A successful search returns the index of the correct tree, an unsuccessful search returns undefined.
 
-The function inProximity() takes an index pointing to a tree in tree_list and finds the distance the cooresponding tree is away from the user.
+The function inProximity() takes as arguments the distance in lattitude and longitude the user is from the neares tree. It returns a single linear distance.
 
 The function goToPage() sends the user to the data collection page. The data available for the user to colect will vary depending on the specific tree the user is near.
 
