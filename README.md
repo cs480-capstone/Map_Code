@@ -12,19 +12,19 @@ Other needed dependancies include AlertController, imported from ionic-angular/c
 
 **The following are the main variables that the class BotaniMap uses to manipulate the game's map**
 
-   >>-map.        this is the variable that holds the google map object.
+   -map.        this is the variable that holds the google map object.
    
-   >>-mapBounds.  this is the variable that defines the boundaries of the playing field,
+   -mapBounds.  this is the variable that defines the boundaries of the playing field,
                   it contains two LatLng objects: one with the northeast corner of the playing field,
                   the other with the southwest corner of the playing field.
                   
-   >>-areaCenter  this variable is the default center of the playing field.
+   -areaCenter  this variable is the default center of the playing field.
    
-   >>-userMark.   this variable is the marker that shows the user's location. 
+   -userMark.   this variable is the marker that shows the user's location. 
    
-   >>-locWatcher. this is an observable object that keeps track of the user's position whenever it changes.
+   -locWatcher. this is an observable object that keeps track of the user's position whenever it changes.
    
-   >>-tree_list.  this variable holds an aray that is dynamically allocated with all trees from the database.
+   -tree_list.  this variable holds an aray that is dynamically allocated with all trees from the database.
    
 **These functions do initial setup**
    
@@ -40,10 +40,10 @@ the function wrapTrees() is called each time a new Tree object is put into the t
 
 the function mapSetup() is where map is initialized. 
 
-   >>-First, the user's geolocation is obtained, this will be used to help determine the initial center of the map;
+   -First, the user's geolocation is obtained, this will be used to help determine the initial center of the map;
              if unsuccessful, a small alert message will be shown and the default center will be used.
              
-   >>-Next, the map is initialized, centered and zoomed in to the correct location.
+   -Next, the map is initialized, centered and zoomed in to the correct location.
 
 The function updateTreeMarks() takes each item in the tree array and gives it a small marker on the map. each tree marker is a custom image. Each tree also has a click event listener that triggers the openWindow() function. This function makes a bubble appear, showing the user information about the specific tree.
 
@@ -55,15 +55,15 @@ the function createLocWatcher() initializes the locWatcher variable that polls f
 
 The function revealHidden() is called based on the change in the user's geolocation. It uses findTree() (described below) to obtain the hidden tree closest to the user (if any). 
 
-    >>- If the user is within a small range from the tree (say 10 feet), they have found the tree and will get awarded points. 
+   - If the user is within a small range from the tree (say 10 feet), they have found the tree and will get awarded points. 
              other users will be notified and the tree's hidden flag will change in the database. 
-    >>- If the user is within a wide range of the tree (say, 60 feet), the user will get a toast message as a hint.
+   - If the user is within a wide range of the tree (say, 60 feet), the user will get a toast message as a hint.
 
 The function observeNearest() is also called based on the user's geolocation. It uses findTree() (described below) to obtain the visible tree closest to the user (if any).
 
-    >>- If the user is within a small range from the tree (say, 10 feet), they are sent to the data collection page, where only info
+   - If the user is within a small range from the tree (say, 10 feet), they are sent to the data collection page, where only info
                 pertaining to that specific tree should be visible. 
-    >>- If the user is not within range if the tree, they will be informed with a message.
+   - If the user is not within range if the tree, they will be informed with a message.
 
 The function findTree() takes a boolean flag which dictates what kind of tree to find (hidden or visible). This function searches for the tree of the correct visibility that is closest to userLoc. A successful search returns the index of the correct tree, an unsiccessful search returns undefined.
 
